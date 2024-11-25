@@ -17,16 +17,18 @@
                         <div class="mb-3">
                             <label for="quantity" class="form-label">Quantity</label>
                             <input type="number" class="form-control" id="quantity" formControlName="quantity" />
+                            @if(order.get('quantity')?.hasError('min')){
+                                <span class="text-danger">Quantity cannot be less than 0</span>
+                            }
                         </div>
                     </div>
                     <div class="col-3">
                         <label for="amount" class="form-label">Amount</label>
-                        <!--<input type="number" class="form-control" id="amount" formControlName="totalPrice" /> -->
                         <div>{{ order.get('totalPrice')?.value }}</div>
                     </div>
                     <div class="col-3 pt-4">
-                        <button class="btn btn-primary" (click)="addProduct()">Add</button>
-                        <button class="btn btn-danger ms-3" (click)="removeProduct(i)">Delete</button>
+                        <button class="btn btn-primary" type="button" (click)="addProduct()">Add</button>
+                        <button class="btn btn-danger ms-3" type="button" (click)="removeProduct(i)">Delete</button>
                     </div>
                 </div>
             </div>

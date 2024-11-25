@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { IOrders } from '../models/orders.model';
+import { ICreateOrder } from '../models/create-order.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +13,10 @@ export class OrdersService {
   getAllOrders(){
     return this.http.get<IOrders[]>('http://localhost:5290/api/v1/order/orders');
     
+  }
+
+  placeOrder(createOrderObj : ICreateOrder[]){
+    return this.http.post<ICreateOrder[]>('http://localhost:5290/api/v1/order/create',createOrderObj);
   }
 
 

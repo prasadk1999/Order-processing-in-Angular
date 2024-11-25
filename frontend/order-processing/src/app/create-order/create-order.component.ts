@@ -1,14 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { ProductsService } from '../../services/products.services';
 import { IProduct } from '../../models/product.model';
-import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
-import { NgFor } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
+import { ICreateOrder } from '../../models/create-order.model';
+import { OrdersService } from '../../services/orders.service';
 
 @Component({
   selector: 'app-create-order',
   standalone: true,
-  imports: [ReactiveFormsModule, NgFor],
+  imports: [ReactiveFormsModule, NgFor, NgIf],
   providers: [ProductsService],
   templateUrl: './create-order.component.html',
   styleUrl: './create-order.component.css'
@@ -17,7 +19,7 @@ export class CreateOrderComponent implements OnInit {
   productsList !: IProduct[];
   orderForm !: FormGroup;
   totalOrderAmount = 0;
-  constructor(private productService: ProductsService, private fb : FormBuilder){  }
+  constructor(private productService: ProductsService, private orderService: OrdersService, private fb : FormBuilder){  }
   
   
   ngOnInit(): void {
@@ -37,9 +39,9 @@ export class CreateOrderComponent implements OnInit {
   
   private addNewProduct(): FormGroup<{ productId: FormControl<number | null>; quantity: FormControl<number | null>;  totalPrice: FormControl<number | null> }> {
     const productRow =  this.fb.group({
-      productId: 0,
-      quantity: 0,
-      totalPrice: 0
+      productId: [0, [Validators.required, this.invalidProductValidator()]],
+      quantity: [1, Validators.min(1)],
+      totalPrice: [0, Validators.min(0)]
     });
 
     this.setupValueChangeListeners(productRow);
@@ -85,7 +87,27 @@ export class CreateOrderComponent implements OnInit {
     ); 
   }
 
+  invalidProductValidator(): ValidatorFn { 
+    return (control: AbstractControl): ValidationErrors | null => { 
+      return control.value === 0 ? { invalidProduct: true } : null; 
+    }; 
+  }
+
   onPlaceOrder() {
-    console.log(this.orderForm.value)
+    console.log(this.orderForm.value.orders)
+    const orderFormObj = this.orderForm.value.orders as ICreateOrder[];
+    const orderObj = orderFormObj.map((value) : ICreateOrder => {
+      return {
+        productId : value.productId, 
+        quantity: value.quantity
+      }
+    });
+    
+    console.log(orderObj);
+    
+    this.orderService.placeOrder(orderObj).subscribe(()=>{
+      alert("Order created successfully")
+    })
+    
   }
 }

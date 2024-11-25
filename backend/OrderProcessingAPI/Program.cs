@@ -7,7 +7,9 @@ var configuration = builder.Configuration;
 builder.Services.AddCors(options =>{
     options.AddPolicy(name: "AllowAngularApp",
                         policy =>{
-                            policy.WithOrigins("http://localhost:4200");
+                            policy.WithOrigins("http://localhost:4200")
+                                  .AllowAnyMethod()
+                                  .AllowAnyHeader();
                         });
 });
 builder.Services.AddControllers();
