@@ -1,0 +1,40 @@
+<div class="container p-5">
+    <form [formGroup]="orderForm" (ngSubmit)="onPlaceOrder()"> 
+        <div>{{ orderForm.get('totalOrderAmount')?.value }}</div>
+        <div formArrayName="orders">
+            <div *ngFor="let order of orders.controls; let i = index" [formGroupName]="i">
+                <div class="row">
+                    <div class="col-3">
+                        <label for="exampleFormControlInput1" class="form-label">Product name</label>
+                        <select  class="form-select" formControlName="productId">
+                            <option id="productId-0" value="0" [disabled]="true">Select a product</option>
+                            @for (item of productsList; track item.productId) {
+                                <option [id]="item.productId" [value]="item.productId">{{item.name}}</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-3">
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" formControlName="quantity" />
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <!--<input type="number" class="form-control" id="amount" formControlName="totalPrice" /> -->
+                        <div>{{ order.get('totalPrice')?.value }}</div>
+                    </div>
+                    <div class="col-3 pt-4">
+                        <button class="btn btn-primary" (click)="addProduct()">Add</button>
+                        <button class="btn btn-danger ms-3" (click)="removeProduct(i)">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-success" [disabled]="orderForm.invalid"> Place Order</button>
+            </div>
+        </div>
+    </form>
+</div>
