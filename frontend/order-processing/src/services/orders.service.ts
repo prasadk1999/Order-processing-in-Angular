@@ -19,5 +19,9 @@ export class OrdersService {
     return this.http.post<ICreateOrder[]>('http://localhost:5290/api/v1/order/create',createOrderObj);
   }
 
+  deleteOrder(orderId : number){
+    return this.http.delete(`http://localhost:5290/api/v1/order/delete/${orderId}`);
+  }
+
 
 }

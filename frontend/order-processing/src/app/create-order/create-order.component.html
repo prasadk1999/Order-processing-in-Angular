@@ -1,6 +1,9 @@
-<div class="container p-5">
+<div class="container">
+    @if(isOrderPlaced){
+        <app-alert>Order placed successfully</app-alert>
+    }
     <form [formGroup]="orderForm" (ngSubmit)="onPlaceOrder()"> 
-        <div>{{ orderForm.get('totalOrderAmount')?.value }}</div>
+        <div><span class="fw-bold">Total Order Amount </span> : {{ orderForm.get('totalOrderAmount')?.value }}</div>
         <div formArrayName="orders">
             <div *ngFor="let order of orders.controls; let i = index" [formGroupName]="i">
                 <div class="row">

@@ -104,7 +104,7 @@ public class OrderController : ControllerBase
             OrderDate = DateTime.Now
         }; 
         _dbContext.Orders.Add(order); 
-        //await _dbContext.SaveChangesAsync(); 
+
 
         int totalAmount = 0; 
         foreach (var orderRequest in orderRequests) { 
