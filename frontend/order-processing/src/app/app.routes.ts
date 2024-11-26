@@ -5,4 +5,5 @@ import { OrdersPageComponent } from './orders-page/orders-page.component';
 export const routes: Routes = [
     {path: '', component: OrdersPageComponent},
     {path: 'create-order', component: CreateOrderComponent},
+    {path: 'update-order/:orderId', component: CreateOrderComponent}
 ];

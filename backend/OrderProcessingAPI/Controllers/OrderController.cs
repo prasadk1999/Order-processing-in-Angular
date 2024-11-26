@@ -21,7 +21,7 @@ public class OrderController : ControllerBase
     }
 
     [HttpGet("order/{orderId}")]
-    public IEnumerable<OrderDetailsDTO> GetOrderDetails(int orderId)
+    public OrderDetailsDTO GetOrderDetails(int orderId)
     {
         var orderDetailsObj = _dbContext.Orders
                                 .Where(o => o.OrderId == orderId)   // Filter Orders based on OrderId
@@ -39,8 +39,7 @@ public class OrderController : ControllerBase
                                         quantity = od.Quantity,
                                         amount = od.Amount
                                     }).ToList()
-                                })
-                                .ToList();  // Ensure you execute the query and return a list
+                                }).FirstOrDefault();  // Ensure you execute the query and return a list
 
 
 
@@ -131,37 +130,101 @@ public class OrderController : ControllerBase
         return Ok(new { orderId = order.OrderId, orderAmount = order.OrderAmount });
     }
 
-    // DELETE: api/orders/{orderId}
-        [HttpDelete("delete/{orderId}")]
-        public async Task<IActionResult> DeleteOrder(int orderId)
+    [HttpPut("update/{orderId}")]
+    public async Task<IActionResult> UpdateOrder(long orderId, [FromBody] List<OrderRequestDTO> orderRequests)
+    {
+        if (orderRequests == null || !orderRequests.Any())
         {
-            // Find the order with its related order details
-            var order = await _dbContext.Orders
-                                        .Include(o => o.OrderDetails) // Ensure related OrderDetails are included
-                                        .FirstOrDefaultAsync(o => o.OrderId == orderId);
+            return BadRequest("Order request cannot be empty");
+        }
 
-            if (order == null)
+        var order = await _dbContext.Orders.FirstOrDefaultAsync(c => c.OrderId == orderId);
+        if (order == null)
+        {
+            return NotFound($"Order with ID {orderId} not found");
+        }
+
+        var orderDetailsFromDb = await _dbContext.OrderDetails.Where(c => c.OrderId == orderId).ToListAsync();
+        var productIdsFromBrowser = orderRequests.Select(c => c.ProductId).ToList();
+        var orderDetailsToRemove = orderDetailsFromDb.Where(c => !productIdsFromBrowser.Contains((long)c.ProductId)).ToList();
+
+        foreach (var orderToRemove in orderDetailsToRemove)
+        {
+            _dbContext.OrderDetails.Remove(orderToRemove);
+        }
+        int totalAmount = 0;
+        foreach (var orderRequest in orderRequests)
+        {
+            var product = await _dbContext.Products.FindAsync(orderRequest.ProductId);
+            if (product == null)
             {
-                // Order not found
-                return NotFound(new { message = $"Order with ID {orderId} not found." });
+                return NotFound($"Product with ID {orderRequest.ProductId} not found");
             }
 
-            // Remove related order details first (optional if cascading delete is set up)
-            _dbContext.OrderDetails.RemoveRange(order.OrderDetails);
+            var amount = (int)(product.Price * orderRequest.Quantity);
+            totalAmount += amount;
+            var existingOrderDetail = orderDetailsFromDb.FirstOrDefault(c => c.ProductId == product.ProductId);
             
-            // Now remove the order
-            _dbContext.Orders.Remove(order);
-
-            try
+            if (existingOrderDetail != null)
             {
-                // Save the changes in the database
-                await _dbContext.SaveChangesAsync();
-                return Ok(new { message = "Order and its details have been deleted successfully." });
+                existingOrderDetail.Quantity = orderRequest.Quantity;
+                existingOrderDetail.Amount = amount;
+                _dbContext.Entry(existingOrderDetail).State = EntityState.Modified;
             }
-            catch (DbUpdateException ex)
+            else
             {
-                // Handle any errors (e.g., foreign key issues or DB update problems)
-                return StatusCode(500, new { message = "Error occurred while deleting the order.", details = ex.Message });
+                var orderDetailsId = SequenceService.GetNextSequenceValue(_dbContext.Database.GetConnectionString(), "order_id_seq");
+                var orderDetail = new OrderDetail
+                {
+                    OrderDetailId = orderDetailsId,
+                    OrderId = orderId,
+                    ProductId = orderRequest.ProductId,
+                    Quantity = orderRequest.Quantity,
+                    Amount = amount,
+                    Status = "Ordered"
+                };
+                _dbContext.OrderDetails.Add(orderDetail);
             }
         }
+
+        order.OrderAmount = totalAmount;
+        _dbContext.Entry(order).State = EntityState.Modified;
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new { orderId = order.OrderId, orderAmount = order.OrderAmount });
+    }
+
+    // DELETE: api/orders/{orderId}
+    [HttpDelete("delete/{orderId}")]
+    public async Task<IActionResult> DeleteOrder(int orderId)
+    {
+        // Find the order with its related order details
+        var order = await _dbContext.Orders
+                                    .Include(o => o.OrderDetails) // Ensure related OrderDetails are included
+                                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+        if (order == null)
+        {
+            // Order not found
+            return NotFound(new { message = $"Order with ID {orderId} not found." });
+        }
+
+        // Remove related order details first (optional if cascading delete is set up)
+        _dbContext.OrderDetails.RemoveRange(order.OrderDetails);
+        
+        // Now remove the order
+        _dbContext.Orders.Remove(order);
+
+        try
+        {
+            // Save the changes in the database
+            await _dbContext.SaveChangesAsync();
+            return Ok(new { message = "Order and its details have been deleted successfully." });
+        }
+        catch (DbUpdateException ex)
+        {
+            // Handle any errors (e.g., foreign key issues or DB update problems)
+            return StatusCode(500, new { message = "Error occurred while deleting the order.", details = ex.Message });
+        }
+    }
 }

@@ -34,9 +34,12 @@ export class OrdersPageComponent implements OnInit {
     });
   }
 
+  onUpdateBtnClicked(arg0: number) {
+    throw new Error('Method not implemented.');
+  }
+
   onDeleteBtnClicked(orderId: number) {
     this.ordersService.deleteOrder(orderId).subscribe((res : any)=>{
-      alert(res.message);
       this.isOrderDeleted = true;
       this.operationMessage = `Order id ${orderId} is deleted successfully`;
       this.ordersList = this.ordersList.filter((value,index)=>{

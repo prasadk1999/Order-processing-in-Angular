@@ -16,10 +16,13 @@
         <tbody>
           @for (item of ordersList; track item.order_id) {
               <tr [class.table-active]="lastCreatedOrderId === item.order_id">
-              <td>{{item.order_date | date : "dd-MMM-yyyy hh:mm a" }}</td>
-              <td>{{item.order_id}}</td>
-              <td>{{item.total_amount}}</td>
-              <td><button class="btn btn-danger" (click)="onDeleteBtnClicked(item.order_id)">Delete</button></td>
+                <td>{{item.order_date | date : "dd-MMM-yyyy hh:mm a" }}</td>
+                <td>{{item.order_id}}</td>
+                <td>{{item.total_amount}}</td>
+                <td>
+                  <a class="btn btn-warning me-2" [routerLink]="'/update-order/' + item.order_id">Update</a>
+                  <button class="btn btn-danger" (click)="onDeleteBtnClicked(item.order_id)">Delete</button>
+                </td>
               </tr>
           }
         </tbody>

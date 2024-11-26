@@ -7,7 +7,7 @@ import { NgFor, NgIf } from '@angular/common';
 import { ICreateOrder } from '../../models/create-order.model';
 import { OrdersService } from '../../services/orders.service';
 import { AlertComponent } from "../utilities/alert/alert.component";
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-create-order',
@@ -22,20 +22,48 @@ export class CreateOrderComponent implements OnInit {
   orderForm !: FormGroup;
   totalOrderAmount = 0;
   isOrderPlaced = false;
+  orderId : number | null = null;
   private productService = inject(ProductsService);
   private orderService = inject(OrdersService);
   private fb = inject(FormBuilder);
   private route = inject(Router);
+  private activateRoute = inject(ActivatedRoute);
   
   ngOnInit(): void {
     this.productService.getAllProducts()
                         .subscribe((productsArr : IProduct[]) => this.productsList = productsArr);
-    this.orderForm = this.fb.group({
-      totalOrderAmount : 0,
-      orders: this.fb.array([
-        this.addNewProduct()
-      ])
+
+    this.activateRoute.params.subscribe((params) => {
+      const paramOrderId = Number(params['orderId']);
+      console.log(paramOrderId);
+      if(isNaN(paramOrderId)){
+        this.orderId = null;
+        this.orderForm = this.fb.group({
+          totalOrderAmount : 0,
+          orders: this.fb.array([
+            this.addNewProduct()
+          ])
+        });
+      }
+      else{
+        this.orderId = paramOrderId;
+        this.orderForm = this.fb.group({
+          totalOrderAmount : 0,
+          orders: this.fb.array([ ])
+        });
+        this.orderService.getOrderByOrderId(this.orderId)
+                          .subscribe((res)=>{
+                            console.log(res);
+                            for(const value of res.order_details){
+                              this.orders.push(this.addNewProduct(value.product_id, value.quantity, value.amount));
+                            }
+                            
+                            this.computeTotalOrderAmount();
+                          })
+      }
+
     });
+
   }
   
   get orders() { return this.orderForm.get('orders') as FormArray; }
@@ -57,7 +85,17 @@ export class CreateOrderComponent implements OnInit {
         quantity: value.quantity
       }
     });
-    this.orderService.placeOrder(orderObj).subscribe((res : any)=>{
+
+    let orderExecution;
+    
+    if(!this.orderId){
+      orderExecution = this.orderService.placeOrder(orderObj);
+    }
+    else{
+      orderExecution = this.orderService.updateOrder(this.orderId, orderObj);
+    }
+
+    orderExecution.subscribe((res : any)=>{
       this.isOrderPlaced = true;
       setTimeout(()=>{
         this.orderForm.reset();
@@ -69,11 +107,11 @@ export class CreateOrderComponent implements OnInit {
   }
 
   // Private methods
-  private addNewProduct(): FormGroup<{ productId: FormControl<number | null>; quantity: FormControl<number | null>;  totalPrice: FormControl<number | null> }> {
+  private addNewProduct(productId = 0, quantity = 1, totalPrice = 0): FormGroup<{ productId: FormControl<number | null>; quantity: FormControl<number | null>;  totalPrice: FormControl<number | null> }> {
     const productRow =  this.fb.group({
-      productId: [0, [Validators.required, this.invalidProductValidator()]],
-      quantity: [1, Validators.min(1)],
-      totalPrice: [0, Validators.min(0)]
+      productId: [productId, [Validators.required, this.invalidProductValidator()]],
+      quantity: [quantity, Validators.min(1)],
+      totalPrice: [totalPrice, Validators.min(0)]
     });
 
     this.setupValueChangeListeners(productRow);
